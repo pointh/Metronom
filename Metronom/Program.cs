@@ -24,7 +24,9 @@ namespace Metronom
         public delegate void TickHandler(Metronom m, TimeOfTick e);
         public event TickHandler Tick;
 
-        public void Tikej()
+        // Do toho, jak funguje Tikej nikomu nic není - úmyslně
+        // publikujeme jenom Tick event a typ delegáta
+        private void Tikej()
         {
             while (true)
             {
@@ -41,7 +43,10 @@ namespace Metronom
         public void Start()
         {
             Console.WriteLine("Ukonči Ctrl-C ...");
-            Tikej();
+            // Tikej(); 
+            // Spuštění metody Tikej v dalším vlákně
+            Thread t = new Thread(Tikej);
+            t.Start();
         }
     }
 
@@ -64,18 +69,34 @@ namespace Metronom
         {
             Console.WriteLine("{0} PROCESSED IT AT {1}", ListID, e.Time);
         }
+
+        public void Unsubscribe(Metronom m)
+        {
+            m.Tick -= HeardIt;
+            m.Tick -= HeardItAndProcessed;
+        }
     }
 
     class Program
     {
         static void Main()
         {
-            Metronom m = new Metronom();
-            Listener l = new Listener(1); l.Subscribe(m);
-            Listener n = new Listener(2); n.Subscribe(m);
-            m.Start();
+            Metronom m1 = new Metronom();
+            Listener l = new Listener(1); l.Subscribe(m1);
+            Listener n = new Listener(2); n.Subscribe(m1);
+            m1.Start();
             // Tohle se nikdy nespustí - pokud s tím něco neuděláme
+            // Pokud m.Start() otevře nové vlákno, program pojede dál...
             Console.WriteLine("Jsem zpátky!");
+            Thread.Sleep(6000);
+            Console.WriteLine("Odhlašuji id {0} z odběrů metronomu", l.ListID);
+            l.Unsubscribe(m1);
+
+            Metronom m2 = new Metronom();
+            m2.Start();
+            Thread.Sleep(4000);
+            // l už existuje, jen ho přihlásíme k 2. metronomu
+            l.Subscribe(m2);
         }
     }
 }
