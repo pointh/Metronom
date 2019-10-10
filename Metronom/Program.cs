@@ -11,10 +11,12 @@ namespace Metronom
     public class TimeOfTick : EventArgs
     {
         public DateTime Time { get; set; }
+        public int MHash;
 
-        public TimeOfTick(DateTime dt)
+        public TimeOfTick(DateTime dt, int hash)
         {
             Time = DateTime.Now;
+            MHash = hash;
         }
     }
 
@@ -23,6 +25,16 @@ namespace Metronom
         // Jenom metody tohoto druhu mohou být pověšeny na Tick event
         public delegate void TickHandler(Metronom m, TimeOfTick e);
         public event TickHandler Tick;
+
+        // V tomto threadu pojede Metronom
+        Thread t;
+
+        // Identifikátor instance Metronomu
+        public int MetronomID;
+        public Metronom()
+        {
+            MetronomID = this.GetHashCode();
+        }
 
         // Do toho, jak funguje Tikej nikomu nic není - úmyslně
         // publikujeme jenom Tick event a typ delegáta
@@ -33,7 +45,7 @@ namespace Metronom
                 Thread.Sleep(1000);
                 if (Tick != null)
                 {
-                    TimeOfTick TOT = new TimeOfTick(DateTime.Now);
+                    TimeOfTick TOT = new TimeOfTick(DateTime.Now, this.GetHashCode());
                     // Spusť všechny metody pověšené na Tick ...
                     Tick(this, TOT);
                 }
@@ -45,8 +57,13 @@ namespace Metronom
             Console.WriteLine("Ukonči Ctrl-C ...");
             // Tikej(); 
             // Spuštění metody Tikej v dalším vlákně
-            Thread t = new Thread(Tikej);
+            t = new Thread(Tikej);
             t.Start();
+        }
+
+        public void Zastav()
+        {
+            t.Suspend();
         }
     }
 
@@ -62,12 +79,12 @@ namespace Metronom
         }
         private void HeardIt(Metronom m, TimeOfTick e)
         {
-            Console.WriteLine("{0} HEARD IT AT {1}", ListID, e.Time);
+            Console.WriteLine("{0} HEARD IT FROM {1} AT {2}", ListID, e.MHash, e.Time);
         }
 
         private void HeardItAndProcessed(Metronom m, TimeOfTick e)
         {
-            Console.WriteLine("{0} PROCESSED IT AT {1}", ListID, e.Time);
+            Console.WriteLine("{0} PROCESSED IT FROM {1} AT {2}", ListID, e.MHash, e.Time);
         }
 
         public void Unsubscribe(Metronom m)
@@ -89,14 +106,20 @@ namespace Metronom
             // Pokud m.Start() otevře nové vlákno, program pojede dál...
             Console.WriteLine("Jsem zpátky!");
             Thread.Sleep(6000);
-            Console.WriteLine("Odhlašuji id {0} z odběrů metronomu", l.ListID);
+            Console.WriteLine("Odhlašuji id {0} z odběrů metronomu {1}", l.ListID, m1.GetHashCode());
             l.Unsubscribe(m1);
 
+            Console.WriteLine("Startuji metronom m2");
             Metronom m2 = new Metronom();
             m2.Start();
             Thread.Sleep(4000);
             // l už existuje, jen ho přihlásíme k 2. metronomu
+            Console.WriteLine("Přihlašuji {0} k odběru metronomu {1}", l.ListID, m2.GetHashCode());
             l.Subscribe(m2);
+
+            Thread.Sleep(4000);
+            Console.WriteLine("Zastavuji metronom {0}", m1.GetHashCode());
+            m1.Zastav();
         }
     }
 }
