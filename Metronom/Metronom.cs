@@ -10,10 +10,10 @@ namespace Metronom
     // TimeOfTick by nemusel dědit z EventArgs, ale takto je jasné, proč tu třídu vlastně máme
     public class TimeOfTick : EventArgs
     {
-        public DateTime Time { get; set; }
+        public DateTime Time { get; private set; }
         public int MHash;
 
-        public TimeOfTick(DateTime dt, int hash)
+        public TimeOfTick(int hash)
         {
             Time = DateTime.Now;
             MHash = hash;
@@ -45,7 +45,7 @@ namespace Metronom
                 Thread.Sleep(1000);
                 if (Tick != null)
                 {
-                    TimeOfTick TOT = new TimeOfTick(DateTime.Now, this.GetHashCode());
+                    TimeOfTick TOT = new TimeOfTick(this.GetHashCode());
                     // Spusť všechny metody pověšené na Tick ...
                     Tick(this, TOT);
                 }
@@ -79,12 +79,14 @@ namespace Metronom
         }
         private void HeardIt(Metronom m, TimeOfTick e)
         {
-            Console.WriteLine("{0} HEARD IT FROM {1} AT {2}", ListID, e.MHash, e.Time);
+            Console.WriteLine("{0} HEARD IT FROM     {1,20} AT\t {2}", 
+                ListID, e.MHash, e.Time.ToString("mm:ss:ff"));
         }
 
         private void HeardItAndProcessed(Metronom m, TimeOfTick e)
         {
-            Console.WriteLine("{0} PROCESSED IT FROM {1} AT {2}", ListID, e.MHash, e.Time);
+            Console.WriteLine("{0} PROCESSED IT FROM {1,20} AT\t {2}", 
+                ListID, e.MHash, e.Time.ToString("mm:ss:ff"));
         }
 
         public void Unsubscribe(Metronom m)
@@ -104,7 +106,7 @@ namespace Metronom
             m1.Start();
             // Tohle se nikdy nespustí - pokud s tím něco neuděláme
             // Pokud m.Start() otevře nové vlákno, program pojede dál...
-            Console.WriteLine("Jsem zpátky!");
+            Console.WriteLine("Jsem zpátky v Main!");
             Thread.Sleep(6000);
             Console.WriteLine("Odhlašuji id {0} z odběrů metronomu {1}", l.ListID, m1.GetHashCode());
             l.Unsubscribe(m1);
